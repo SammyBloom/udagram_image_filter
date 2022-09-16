@@ -1,5 +1,6 @@
 import express from 'express';
 import bodyParser from 'body-parser';
+import { Router, Response, Request } from 'express';
 import {filterImageFromURL, deleteLocalFiles} from './util/util';
 
 (async () => {
@@ -28,6 +29,33 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
   //   the filtered image file [!!TIP res.sendFile(filteredpath); might be useful]
 
   /**************************************************************************** */
+  function validateImage_Url(ImageURL: string) {
+    let regexQuery = "^(https?://)?(www\\.)?([-a-z0-9]{1,63}\\.)*?[a-z0-9][-a-z0-9]{0,61}[a-z0-9]\\.[a-z]{2,6}(/[-\\w@\\+\\.~#\\?&/=%]*)?$";
+    let url = new RegExp(regexQuery,"i");
+    return url.test(ImageURL);
+  }
+
+  app.get( "/filteredimage", async ( req: Request, res: Response) => {
+    let image_url = req.query.image_url.toString();
+
+    // Validate the Image_URL query
+    let isImageURLValid = validateImage_Url(image_url);
+
+    if (!isImageURLValid) {
+      res.status(404).send("Image_url not found");
+    } else {
+      // res.status(201).send("Image_url exists and is valid");
+      //    2. call filterImageFromURL(image_url) to filter the image
+      let filteredImage = await filterImageFromURL(image_url);
+
+      //    3. send the resulting file in the response
+      res.status(201).sendFile(filteredImage, () => {
+
+      //    4. deletes any files on the server on finish of the response
+        deleteLocalFiles([filteredImage]);
+      });
+    }
+  });
 
   //! END @TODO1
   
